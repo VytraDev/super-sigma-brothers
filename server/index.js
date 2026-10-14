@@ -2,8 +2,9 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const pool = require('./db');
-const { todayInMalaysia, currentHourInMalaysia } = require('./dates');
+const { todayInMalaysia, currentHourInMalaysia, visitDateFacts } = require('./dates');
 const { validateVisit } = require('./rules');
+const { askGroq, templateDraft } = require('./drafts');
 
 const app = express();
 app.use(cors({ origin: 'http://localhost:5173' }));
@@ -48,6 +49,39 @@ app.post('/api/houses/:id/visits', async (req, res) => {
     if (error.code === '23505') return res.status(409).json({ error: 'That slot is already booked.' });
     throw error;
   }
+});
+
+app.post('/api/houses/:id/visits/:visitId/draft', async (req, res) => {
+  if (!validId(req.params.id) || !validId(req.params.visitId)) {
+    return res.status(400).json({ error: 'Choose a valid visit.' });
+  }
+  const house = await pool.query('SELECT id FROM houses WHERE id = $1', [req.params.id]);
+  if (!house.rows.length) return res.status(404).json({ error: 'House not found.' });
+  const visit = await pool.query(
+    'SELECT * FROM visits WHERE id = $1 AND house_id = $2',
+    [req.params.visitId, req.params.id],
+  );
+  if (!visit.rows.length) return res.status(404).json({ error: 'Visit not found.' });
+  const row = visit.rows[0];
+  const today = todayInMalaysia(new Date());
+  if (row.visit_date < today) return res.status(400).json({ error: 'Past visits cannot be drafted.' });
+
+  const facts = visitDateFacts(row.visit_date, row.visit_hour, today);
+  let draft;
+  let aiUnavailable = false;
+  try {
+    draft = await askGroq(facts, row.job);
+  } catch (error) {
+    console.error('Groq draft failed:', error.name || error.message);
+    draft = templateDraft(facts, row.job);
+    aiUnavailable = true;
+  }
+  const draftSource = aiUnavailable ? 'template' : 'ai';
+  const saved = await pool.query(
+    'UPDATE visits SET draft_subject = $1, draft_body = $2, draft_source = $3 WHERE id = $4 RETURNING draft_subject, draft_body, draft_source',
+    [draft.subject, draft.body, draftSource, row.id],
+  );
+  res.json({ draft: saved.rows[0], aiUnavailable });
 });
 
 app.use((error, req, res, next) => {
