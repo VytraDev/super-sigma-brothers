@@ -11,6 +11,9 @@ CREATE TABLE visits (
   visit_date DATE NOT NULL,
   visit_hour INTEGER NOT NULL CHECK (visit_hour BETWEEN 7 AND 21),
   job TEXT NOT NULL CHECK (length(trim(job)) BETWEEN 1 AND 200),
+  draft_subject TEXT,
+  draft_body TEXT,
+  draft_source TEXT CHECK (draft_source IN ('ai', 'template')),
   UNIQUE (visit_date, visit_hour)
 );
 

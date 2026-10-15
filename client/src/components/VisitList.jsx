@@ -1,7 +1,8 @@
 import wrench from '../assets/wrench.svg';
 import { hourLabel } from '../hours.js';
+import VisitDraft from './VisitDraft.jsx';
 
-export default function VisitList({ visits, today }) {
+export default function VisitList({ visits, today, house, onDraftSaved }) {
   if (visits.length === 0) {
     return (
       <div className="empty-visits">
@@ -33,6 +34,14 @@ export default function VisitList({ visits, today }) {
             </div>
             <p className="visit-hour">{hourLabel(visit.visit_hour)}</p>
             <p className="job">{visit.job}</p>
+            {!past && (
+              <VisitDraft
+                visit={visit}
+                houseId={house.id}
+                ownerEmail={house.email}
+                onDraftSaved={onDraftSaved}
+              />
+            )}
           </li>
         );
       })}

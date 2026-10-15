@@ -56,6 +56,13 @@ export default function App() {
     setSelected(house);
   }
 
+  function saveDraft(visitId, draft) {
+    setVisits((current) => {
+      if (!current) return current;
+      return current.map((visit) => (visit.id === visitId ? { ...visit, ...draft } : visit));
+    });
+  }
+
   return (
     <>
       <header className="brand">
@@ -86,7 +93,11 @@ export default function App() {
             <div className="desk">
               <section className="visit-ledger">
                 <h2>Service visits</h2>
-                {visits ? <VisitList visits={visits} today={clock.today} /> : <p>Loading visits...</p>}
+                {visits ? (
+                  <VisitList visits={visits} today={clock.today} house={selected} onDraftSaved={saveDraft} />
+                ) : (
+                  <p>Loading visits...</p>
+                )}
               </section>
               <VisitForm
                 key={selected.id}
