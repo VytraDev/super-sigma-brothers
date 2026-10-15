@@ -57,7 +57,10 @@ export default function App() {
   }
 
   function saveDraft(visitId, draft) {
-    setVisits((current) => current.map((visit) => (visit.id === visitId ? { ...visit, ...draft } : visit)));
+    setVisits((current) => {
+      if (!current) return current;
+      return current.map((visit) => (visit.id === visitId ? { ...visit, ...draft } : visit));
+    });
   }
 
   return (

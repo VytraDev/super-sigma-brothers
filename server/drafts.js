@@ -37,7 +37,19 @@ async function askGroq(facts, job) {
     body: JSON.stringify({
       model: MODEL,
       messages: buildMessages(facts, job),
-      response_format: { type: 'json_object' },
+      response_format: {
+        type: 'json_schema',
+        json_schema: {
+          name: 'visit_email',
+          strict: true,
+          schema: {
+            type: 'object',
+            properties: { subject: { type: 'string' }, body: { type: 'string' } },
+            required: ['subject', 'body'],
+            additionalProperties: false,
+          },
+        },
+      },
       temperature: 0.4,
     }),
     signal: AbortSignal.timeout(15000),
